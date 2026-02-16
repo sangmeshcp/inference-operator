@@ -1,0 +1,57 @@
+---
+# Example: A100 GPU Pool with MIG support
+apiVersion: inference.ai/v1alpha1
+kind: GPUPool
+metadata:
+  name: a100-pool
+spec:
+  nodeSelector:
+    accelerator: nvidia-a100
+  gpuType: nvidia-a100
+  sharing:
+    mode: mig
+    profiles:
+      - name: 3g.40gb
+        count: 2
+      - name: 1g.10gb
+        count: 4
+  oversubscription:
+    enabled: true
+    ratio: "1.5"
+  reservationPolicy: best-fit
+  healthCheckInterval: "30s"
+
+---
+# Example: H100 GPU Pool with MPS
+apiVersion: inference.ai/v1alpha1
+kind: GPUPool
+metadata:
+  name: h100-pool
+spec:
+  nodeSelector:
+    accelerator: nvidia-h100
+  gpuType: nvidia-h100
+  sharing:
+    mode: mps
+    mpsActiveThreadPercentage: 50
+    mpsMemoryLimit: 40Gi
+  oversubscription:
+    enabled: false
+  reservationPolicy: best-fit
+
+---
+# Example: Mixed GPU Pool with time-slicing
+apiVersion: inference.ai/v1alpha1
+kind: GPUPool
+metadata:
+  name: dev-pool
+spec:
+  nodeSelector:
+    environment: development
+  sharing:
+    mode: timeslice
+    timeSliceInterval: 100
+  oversubscription:
+    enabled: true
+    ratio: "2.0"
+  preemptionPolicy: low-priority

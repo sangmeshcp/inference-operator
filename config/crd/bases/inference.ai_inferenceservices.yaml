@@ -1,0 +1,264 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: inferenceservices.inference.ai
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: inference.ai
+  names:
+    kind: InferenceService
+    listKind: InferenceServiceList
+    plural: inferenceservices
+    singular: inferenceservice
+    shortNames:
+      - isvc
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.replicas
+          statusReplicasPath: .status.readyReplicas
+      additionalPrinterColumns:
+        - name: Model
+          type: string
+          jsonPath: .spec.model.name
+        - name: Backend
+          type: string
+          jsonPath: .spec.backend
+        - name: Replicas
+          type: integer
+          jsonPath: .spec.replicas
+        - name: Ready
+          type: integer
+          jsonPath: .status.readyReplicas
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: InferenceService is the Schema for the inferenceservices API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              required:
+                - model
+                - gpu
+              properties:
+                model:
+                  type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                      description: Model identifier (e.g., "meta-llama/Llama-2-70b")
+                    source:
+                      type: string
+                      enum: [huggingface, s3, gcs, pvc, local]
+                      default: huggingface
+                    revision:
+                      type: string
+                    secretRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                    storagePath:
+                      type: string
+                backend:
+                  type: string
+                  enum: [vllm, triton, tensorrt]
+                  default: vllm
+                backendConfig:
+                  type: object
+                  properties:
+                    maxBatchSize:
+                      type: integer
+                      default: 32
+                    maxSeqLen:
+                      type: integer
+                      default: 4096
+                    tensorParallelism:
+                      type: integer
+                      default: 1
+                    pipelineParallelism:
+                      type: integer
+                      default: 1
+                    quantization:
+                      type: string
+                    extraArgs:
+                      type: object
+                      additionalProperties:
+                        type: string
+                replicas:
+                  type: integer
+                  minimum: 0
+                  default: 1
+                gpu:
+                  type: object
+                  required:
+                    - type
+                  properties:
+                    type:
+                      type: string
+                      description: GPU type (e.g., "nvidia-a100", "nvidia-h100")
+                    count:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                    sharing:
+                      type: string
+                      enum: [mig, mps, timeslice, exclusive]
+                      default: exclusive
+                    migProfile:
+                      type: string
+                    memory:
+                      type: string
+                    gpuPoolRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                cache:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    strategy:
+                      type: string
+                      enum: [hybrid, prefix, distributed, local, none]
+                      default: hybrid
+                    prefixCacheSize:
+                      type: string
+                    tokenCacheRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                    ttl:
+                      type: string
+                autoscaling:
+                  type: object
+                  properties:
+                    minReplicas:
+                      type: integer
+                      minimum: 0
+                      default: 1
+                    maxReplicas:
+                      type: integer
+                      minimum: 1
+                      default: 10
+                    metrics:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            enum: [gpu-utilization, queue-depth, requests-per-second, latency-p99]
+                          target:
+                            type: integer
+                            minimum: 1
+                    scaleDownStabilizationSeconds:
+                      type: integer
+                      default: 300
+                    scaleUpStabilizationSeconds:
+                      type: integer
+                      default: 60
+                resources:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                nodeSelector:
+                  type: object
+                  additionalProperties:
+                    type: string
+                tolerations:
+                  type: array
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                serviceAccountName:
+                  type: string
+                imagePullSecrets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: [Pending, Initializing, Running, Scaling, Failed, Terminating]
+                readyReplicas:
+                  type: integer
+                availableReplicas:
+                  type: integer
+                url:
+                  type: string
+                gpuAllocations:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      nodeName:
+                        type: string
+                      deviceId:
+                        type: string
+                      migInstance:
+                        type: string
+                      memoryAllocated:
+                        type: string
+                      utilization:
+                        type: integer
+                cacheStatus:
+                  type: object
+                  properties:
+                    hitRate:
+                      type: number
+                    size:
+                      type: string
+                    entries:
+                      type: integer
+                      format: int64
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                lastScaleTime:
+                  type: string
+                  format: date-time
+                observedGeneration:
+                  type: integer
+                  format: int64

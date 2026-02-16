@@ -1,0 +1,219 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gpupools.inference.ai
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: inference.ai
+  names:
+    kind: GPUPool
+    listKind: GPUPoolList
+    plural: gpupools
+    singular: gpupool
+    shortNames:
+      - gp
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Mode
+          type: string
+          jsonPath: .spec.sharing.mode
+        - name: Total
+          type: integer
+          jsonPath: .status.totalGPUs
+        - name: Available
+          type: integer
+          jsonPath: .status.availableGPUs
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: GPUPool is the Schema for the gpupools API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                nodeSelector:
+                  type: object
+                  additionalProperties:
+                    type: string
+                gpuType:
+                  type: string
+                  description: Filter GPUs by type (e.g., "nvidia-a100")
+                sharing:
+                  type: object
+                  properties:
+                    mode:
+                      type: string
+                      enum: [mig, mps, timeslice, exclusive]
+                      default: exclusive
+                    profiles:
+                      type: array
+                      description: MIG profiles (only for MIG mode)
+                      items:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          name:
+                            type: string
+                            pattern: '^\d+g\.\d+gb$'
+                          count:
+                            type: integer
+                            minimum: 1
+                            default: 1
+                    timeSliceInterval:
+                      type: integer
+                      minimum: 1
+                      default: 100
+                      description: Time slice interval in milliseconds
+                    mpsActiveThreadPercentage:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 100
+                    mpsMemoryLimit:
+                      type: string
+                oversubscription:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                    ratio:
+                      type: string
+                      default: "1.0"
+                    memoryOvercommitRatio:
+                      type: string
+                reservationPolicy:
+                  type: string
+                  enum: [best-fit, worst-fit, random]
+                  default: best-fit
+                preemptionPolicy:
+                  type: string
+                  enum: [none, low-priority, graceful]
+                  default: none
+                healthCheckInterval:
+                  type: string
+                  default: "30s"
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: [Pending, Ready, Degraded, Failed]
+                totalGPUs:
+                  type: integer
+                availableGPUs:
+                  type: integer
+                allocatedGPUs:
+                  type: integer
+                totalMemory:
+                  type: string
+                availableMemory:
+                  type: string
+                nodes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      nodeName:
+                        type: string
+                      totalGPUs:
+                        type: integer
+                      availableGPUs:
+                        type: integer
+                      gpus:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            deviceId:
+                              type: string
+                            uuid:
+                              type: string
+                            model:
+                              type: string
+                            totalMemory:
+                              type: string
+                            availableMemory:
+                              type: string
+                            utilization:
+                              type: integer
+                            temperature:
+                              type: integer
+                            powerUsage:
+                              type: integer
+                            migEnabled:
+                              type: boolean
+                            migInstances:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  instanceId:
+                                    type: string
+                                  profile:
+                                    type: string
+                                  memory:
+                                    type: string
+                                  computeUnits:
+                                    type: integer
+                                  inUse:
+                                    type: boolean
+                                  allocatedTo:
+                                    type: string
+                            allocations:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  serviceRef:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                  allocatedMemory:
+                                    type: string
+                                  allocatedAt:
+                                    type: string
+                                    format: date-time
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                lastSyncTime:
+                  type: string
+                  format: date-time
+                observedGeneration:
+                  type: integer
+                  format: int64
