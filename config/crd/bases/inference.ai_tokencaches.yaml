@@ -1,0 +1,246 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tokencaches.inference.ai
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+spec:
+  group: inference.ai
+  names:
+    kind: TokenCache
+    listKind: TokenCacheList
+    plural: tokencaches
+    singular: tokencache
+    shortNames:
+      - tc
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Policy
+          type: string
+          jsonPath: .spec.evictionPolicy
+        - name: HitRate
+          type: number
+          jsonPath: .status.overallHitRate
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: TokenCache is the Schema for the tokencaches API
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              required:
+                - tiers
+              properties:
+                tiers:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - type
+                      - size
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        enum: [prefix, local, redis, memcached]
+                      size:
+                        type: string
+                      ttl:
+                        type: string
+                      priority:
+                        type: integer
+                        minimum: 0
+                        default: 0
+                      redisConfig:
+                        type: object
+                        properties:
+                          replicas:
+                            type: integer
+                            minimum: 1
+                            default: 1
+                          mode:
+                            type: string
+                            enum: [standalone, sentinel, cluster]
+                            default: standalone
+                          externalEndpoint:
+                            type: string
+                          passwordSecretRef:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              key:
+                                type: string
+                          maxConnections:
+                            type: integer
+                            default: 100
+                          connectionTimeout:
+                            type: string
+                            default: "5s"
+                          persistenceEnabled:
+                            type: boolean
+                            default: false
+                      localConfig:
+                        type: object
+                        properties:
+                          storageClass:
+                            type: string
+                          mountPath:
+                            type: string
+                            default: "/cache"
+                          useRamDisk:
+                            type: boolean
+                            default: false
+                          compression:
+                            type: boolean
+                            default: false
+                          compressionAlgorithm:
+                            type: string
+                            enum: [lz4, zstd, snappy]
+                            default: lz4
+                      prefixConfig:
+                        type: object
+                        properties:
+                          maxPrefixLength:
+                            type: integer
+                            default: 2048
+                          minPrefixLength:
+                            type: integer
+                            default: 32
+                          blockSize:
+                            type: integer
+                            default: 16
+                          enableSwap:
+                            type: boolean
+                            default: true
+                          swapSpaceSize:
+                            type: string
+                evictionPolicy:
+                  type: string
+                  enum: [lru, lfu, fifo, ttl]
+                  default: lru
+                warmup:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                    commonPrefixes:
+                      type: array
+                      items:
+                        type: string
+                    warmupSchedule:
+                      type: string
+                    sourceConfigMapRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        key:
+                          type: string
+                coherencePolicy:
+                  type: string
+                  enum: [write-through, write-back, write-around]
+                  default: write-through
+                metricsEnabled:
+                  type: boolean
+                  default: true
+                metricsPort:
+                  type: integer
+                  default: 9090
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: [Pending, Initializing, Ready, Degraded, Failed]
+                totalSize:
+                  type: string
+                usedSize:
+                  type: string
+                totalEntries:
+                  type: integer
+                  format: int64
+                overallHitRate:
+                  type: number
+                tiers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      ready:
+                        type: boolean
+                      size:
+                        type: string
+                      usedSize:
+                        type: string
+                      entries:
+                        type: integer
+                        format: int64
+                      hitRate:
+                        type: number
+                      missRate:
+                        type: number
+                      avgLatency:
+                        type: string
+                      endpoint:
+                        type: string
+                warmupStatus:
+                  type: object
+                  properties:
+                    inProgress:
+                      type: boolean
+                    progress:
+                      type: integer
+                    lastWarmupTime:
+                      type: string
+                      format: date-time
+                    entriesWarmed:
+                      type: integer
+                      format: int64
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                lastSyncTime:
+                  type: string
+                  format: date-time
+                observedGeneration:
+                  type: integer
+                  format: int64

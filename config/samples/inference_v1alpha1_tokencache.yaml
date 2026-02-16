@@ -1,0 +1,101 @@
+---
+# Example: Multi-tier token cache with GPU prefix, local NVMe, and Redis
+apiVersion: inference.ai/v1alpha1
+kind: TokenCache
+metadata:
+  name: shared-cache
+  namespace: default
+spec:
+  tiers:
+    - name: gpu-prefix
+      type: prefix
+      size: 16Gi
+      ttl: 1h
+      priority: 0
+      prefixConfig:
+        maxPrefixLength: 2048
+        minPrefixLength: 32
+        blockSize: 16
+        enableSwap: true
+        swapSpaceSize: 8Gi
+
+    - name: local-nvme
+      type: local
+      size: 100Gi
+      ttl: 24h
+      priority: 1
+      localConfig:
+        storageClass: nvme-ssd
+        mountPath: /cache
+        compression: true
+        compressionAlgorithm: zstd
+
+    - name: distributed
+      type: redis
+      size: 500Gi
+      ttl: 168h  # 7 days
+      priority: 2
+      redisConfig:
+        replicas: 3
+        mode: cluster
+        maxConnections: 200
+        connectionTimeout: 5s
+        persistenceEnabled: true
+
+  evictionPolicy: lru
+  coherencePolicy: write-through
+  metricsEnabled: true
+  metricsPort: 9090
+
+  warmup:
+    enabled: true
+    commonPrefixes:
+      - "You are a helpful assistant"
+      - "Summarize the following"
+      - "Translate the following"
+      - "Answer the following question"
+      - "Write a Python function"
+
+---
+# Example: Simple local cache only
+apiVersion: inference.ai/v1alpha1
+kind: TokenCache
+metadata:
+  name: local-cache
+  namespace: default
+spec:
+  tiers:
+    - name: local
+      type: local
+      size: 50Gi
+      ttl: 12h
+      localConfig:
+        useRamDisk: true
+        compression: false
+
+  evictionPolicy: lru
+  metricsEnabled: true
+
+---
+# Example: Using external Redis
+apiVersion: inference.ai/v1alpha1
+kind: TokenCache
+metadata:
+  name: external-redis-cache
+  namespace: default
+spec:
+  tiers:
+    - name: redis
+      type: redis
+      size: 100Gi
+      ttl: 72h
+      redisConfig:
+        externalEndpoint: redis-cluster.redis.svc.cluster.local:6379
+        passwordSecretRef:
+          name: redis-credentials
+          key: password
+        mode: cluster
+        maxConnections: 100
+
+  evictionPolicy: lru
+  coherencePolicy: write-through

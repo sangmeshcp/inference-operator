@@ -1,0 +1,102 @@
+---
+# Example: Deploy Llama 2 70B with vLLM on A100 GPUs with MIG
+apiVersion: inference.ai/v1alpha1
+kind: InferenceService
+metadata:
+  name: llama-70b
+  namespace: default
+spec:
+  model:
+    name: meta-llama/Llama-2-70b-chat-hf
+    source: huggingface
+    secretRef:
+      name: huggingface-token
+  backend: vllm
+  backendConfig:
+    maxBatchSize: 32
+    maxSeqLen: 4096
+    tensorParallelism: 2
+    quantization: awq
+  replicas: 3
+  gpu:
+    type: nvidia-a100
+    count: 2
+    sharing: mig
+    migProfile: 3g.40gb
+    gpuPoolRef:
+      name: a100-pool
+  cache:
+    enabled: true
+    strategy: hybrid
+    prefixCacheSize: 8Gi
+    tokenCacheRef:
+      name: shared-cache
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 10
+    metrics:
+      - type: gpu-utilization
+        target: 80
+      - type: queue-depth
+        target: 100
+  resources:
+    limits:
+      cpu: "16"
+      memory: 64Gi
+    requests:
+      cpu: "8"
+      memory: 32Gi
+  nodeSelector:
+    accelerator: nvidia-a100
+
+---
+# Example: Deploy Mistral 7B with vLLM (single GPU)
+apiVersion: inference.ai/v1alpha1
+kind: InferenceService
+metadata:
+  name: mistral-7b
+  namespace: default
+spec:
+  model:
+    name: mistralai/Mistral-7B-Instruct-v0.2
+    source: huggingface
+  backend: vllm
+  backendConfig:
+    maxSeqLen: 8192
+  replicas: 2
+  gpu:
+    type: nvidia-a100
+    count: 1
+    sharing: exclusive
+  cache:
+    enabled: true
+    strategy: prefix
+    prefixCacheSize: 4Gi
+  autoscaling:
+    minReplicas: 1
+    maxReplicas: 5
+    metrics:
+      - type: requests-per-second
+        target: 50
+
+---
+# Example: Deploy with Triton Inference Server
+apiVersion: inference.ai/v1alpha1
+kind: InferenceService
+metadata:
+  name: bert-triton
+  namespace: default
+spec:
+  model:
+    name: bert-base-uncased
+    source: huggingface
+  backend: triton
+  backendConfig:
+    maxBatchSize: 64
+  replicas: 2
+  gpu:
+    type: nvidia-t4
+    count: 1
+    sharing: mps
+  cache:
+    enabled: false

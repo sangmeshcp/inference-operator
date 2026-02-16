@@ -1,0 +1,212 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: inference-operator-manager-role
+rules:
+# InferenceService permissions
+- apiGroups:
+  - inference.ai
+  resources:
+  - inferenceservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - inference.ai
+  resources:
+  - inferenceservices/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - inference.ai
+  resources:
+  - inferenceservices/status
+  verbs:
+  - get
+  - patch
+  - update
+
+# GPUPool permissions
+- apiGroups:
+  - inference.ai
+  resources:
+  - gpupools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - inference.ai
+  resources:
+  - gpupools/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - inference.ai
+  resources:
+  - gpupools/status
+  verbs:
+  - get
+  - patch
+  - update
+
+# TokenCache permissions
+- apiGroups:
+  - inference.ai
+  resources:
+  - tokencaches
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - inference.ai
+  resources:
+  - tokencaches/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - inference.ai
+  resources:
+  - tokencaches/status
+  verbs:
+  - get
+  - patch
+  - update
+
+# Deployment permissions
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+# StatefulSet permissions
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+# Service permissions
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+# ConfigMap permissions
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+# Secret permissions (read only)
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+
+# PVC permissions
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+# Node permissions (read only for GPU discovery)
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+
+# Pod permissions (for metrics and health)
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+
+# Event permissions
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+# Coordination for leader election
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
